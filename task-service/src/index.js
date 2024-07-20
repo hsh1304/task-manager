@@ -13,9 +13,9 @@ sequelize.sync();
 //create task
 
 app.post('/tasks', async (req, res) => {
-  const { title, description, dueDate } = req.body;
+  const { userId, title, description, status, dueDate } = req.body;
   try {
-    const task = await Task.create({ title, description, dueDate });
+    const task = await Task.create({ user_id: userId, title, description, due_date: dueDate, status: 'pending' });
     res.status(200).json(task);
   } catch (err) {
     res.status(400).json({ error: err.message });

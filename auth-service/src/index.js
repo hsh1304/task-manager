@@ -17,8 +17,8 @@ app.post('/signup', async (req, res) => {
   try {
     const user = await User.create({ username, password: hashedPassword });
     res.status(201).json(user);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -36,8 +36,8 @@ app.post('/login', async (req, res) => {
     } else {
       res.status(401).json({ error: 'Invalid credentials' });
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

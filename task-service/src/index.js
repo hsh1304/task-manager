@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const sequelize = require('../config/database');
 const Task = require('../models/task');
+const amqp = require('amqplib/callback_api');
+
 
 const app = express();
 app.use(bodyParser.json());
@@ -56,6 +58,7 @@ app.put('/tasks/:id', async (req, res) => {
       task.dueDate = dueDate || task.dueDate;
       task.status = status || task.status;
       await task.save();
+
       res.json(task);
     } else {
       res.status(404).json({ error: 'Task not found' });
@@ -80,14 +83,49 @@ app.delete('/tasks/:id', async (req, res) => {
   }
 });
 
+
+function notifyCompletion(userId, taskTitle) {
+  amqp.connect('amqp://rabbitmq', (error0, connection) => {
+      if (error0) {
+          throw error0;
+      }
+      connection.createChannel((error1, channel) => {
+          if (error1) {
+              throw error1;
+          }
+
+          const queue = 'task_notifications';
+          const msg = JSON.stringify({
+              userId: userId,
+              message: `Task "${taskTitle}" has been completed!`
+          });
+
+          channel.assertQueue(queue, {
+              durable: false
+          });
+
+          channel.sendToQueue(queue);
+      });
+  });
+}
+
 //mark task as completed
+
 
 app.put('/tasks/:id/complete', async (req, res) => {
   try {
-    const task = await Task.findByPk(req.params.id);
+    const taskId = req.params.id;
+    const userId = req.body.userId;
+    const taskTitle = req.body.title;
+
+    const task = await Task.findByPk(taskId);
+
     if (task) {
       task.status = 'completed';
       await task.save();
+
+      // notifyCompletion(userId, taskTitle);
+
       res.json(task);
     } else {
       res.status(404).json({ error: 'Task not found' });
